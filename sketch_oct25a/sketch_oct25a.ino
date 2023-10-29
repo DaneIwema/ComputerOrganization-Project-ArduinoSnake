@@ -9,14 +9,19 @@ enum Cell {
 
 Cell buffer[8][8];
 
+enum Direction {
+  LEFT, 
+  RIGHT,
+  UP,
+  DOWN,
+};
+
 struct Body {
   int x;
   int y;
-  int lr;
-  int ud;
+  Direction direction;
 };
-Body head = {3, 4, -1, 0};
-Body tail = {3, 5, -1, 0};
+Body head = {3, 4, LEFT};
 
 struct Food {
   int x;
@@ -33,74 +38,48 @@ void setup() {
 
 void loop() {
   if (analogRead(0) > 550){
-    head.lr = -1;
-    head.ud = 0;
-    tail.lr = -1;
-    tail.ud = 0;
+    head.direction = LEFT;
   }
   if (analogRead(0) < 450){
-    head.lr = 1;
-    head.ud = 0;
-    tail.lr = 1;
-    tail.ud = 0;
+    head.direction = RIGHT;
   }
   if (analogRead(1) > 550){
-    head.lr = 0;
-    head.ud = 1;
-    tail.lr = 0;
-    tail.ud = 1;
+    head.direction = UP;
   }
   if (analogRead(1) < 450){
-    head.lr = 0;
-    head.ud = -1;
-    tail.lr = 0;
-    tail.ud = -1;
+    head.direction = DOWN;
   }
-  lc.setLed(0, head.x, head.y, true);
-  lc.setLed(0, tail.x, tail.y, false);
   moveSnake();
-  delay(500);
+  delay(250);
 }
 
 void moveSnake(){
-  switch(head.x){
-    case 8:
-      head.x = 0;
+  lc.setLed(0, head.y, head.x, false);
+  switch(head.direction){
+    case LEFT:
+      head.x += 1;
+      if (head.x == 8)
+        head.x = 0;
+      Serial.println(head.x);
       break;
-    case 0:
-      head.x = 8;
+    case RIGHT:
+      head.x -= 1;
+      if (head.x == -1)
+        head.x = 7;
+      Serial.println(head.x);
       break;
-    default:
-      head.x += head.ud;
+    case UP:
+      head.y += 1;
+      if (head.y == 8)
+        head.y = 0;
+      Serial.println(head.y);
+      break;
+    case DOWN:
+      head.y -= 1;
+      if (head.y == -1)
+        head.y = 7;
+      Serial.println(head.y);
+      break;
   }
-  switch(head.y){
-    case 8:
-      head.y = 0;
-      break;
-    case 0:
-      head.y = 8;
-      break;
-    default:
-      head.y += head.lr;
-  }
-  switch(tail.x){
-    case 8:
-      tail.x = 0;
-      break;
-    case 0:
-      tail.x = 8;
-      break;
-    default:
-      tail.x += tail.ud;
-  }
-  switch(tail.y){
-    case 8:
-      tail.y = 0;
-      break;
-    case 0:
-      tail.y = 8;
-      break;
-    default:
-      tail.y += tail.lr;
-  }
+  lc.setLed(0, head.y, head.x, true);
 }
