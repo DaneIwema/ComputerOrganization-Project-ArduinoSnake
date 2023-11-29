@@ -1,5 +1,7 @@
 #include "LedControl.h"
+#include "SevSeg.h"
 LedControl MatDisp = LedControl(8, 10, 9, 1);
+SevSeg sevseg;
 
 struct Coord {
   int x;
@@ -8,12 +10,23 @@ struct Coord {
 
 unsigned long previousMillis = 0;
 const unsigned long interval = 500; //in milliseconds
+int highScore = 0;
 
 void setup() {
   Serial.begin(9600);
   pinMode(7, INPUT);
   MatDisp.shutdown(0,false);
   MatDisp.setIntensity(0,5);
+
+  byte numDigits = 4;
+  byte digitPins[] = {39, 41, 43, 45};
+  byte segmentPins[] = {23, 25, 27, 29, 31, 33, 35, 37};
+
+  bool resistorsOnSegments = true; 
+  bool updateWithDelaysIn = true;
+  byte hardwareConfig = COMMON_CATHODE; 
+  sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, resistorsOnSegments);
+  sevseg.setBrightness(90);
 }
 
 void loop() {
@@ -26,6 +39,7 @@ void loop() {
   int curDirection = 0; //starts moving up
   int buffer[8][8] = {0};
   buffer[4][3] = curDirection + 1; //set the position the tail will move to in the begining
+  int curScore = 0;
   newFood(buffer);
   bool gameOver = false; //sets the gameOver flag for the loop
   while (!gameOver) {
@@ -52,6 +66,7 @@ void loop() {
         case 5: //food
           MatDisp.setLed(0, snakeHead.x, snakeHead.y, true); //display new head position
           newFood(buffer);
+          curScore ++;
           break;
         case 0: //empty slot
           MatDisp.setLed(0, snakeHead.x, snakeHead.y, true); //display new head position
@@ -59,9 +74,7 @@ void loop() {
           //get current tail position
           int tempX = snakeTail.x;
           int tempY = snakeTail.y;
-
-          Serial.print("next tail move: ");
-          Serial.println(buffer[snakeTail.x][snakeTail.y] - 1);
+          
           snakeTail = addCoords(snakeTail, possibleDirections[buffer[snakeTail.x][snakeTail.y] - 1]); //pulls move from buffer and updates the tail
 
           buffer[tempX][tempY] = 0; //change last tail position in buffer to 0
@@ -71,17 +84,15 @@ void loop() {
           MatDisp.setLed(0, snakeTail.x, snakeTail.y, false); //display tail
           break;
       }
-      Serial.print("Head: ");
-      Serial.print(snakeHead.x);
-      Serial.print(" ");
-      Serial.println(snakeHead.y);
-      Serial.print("Tail: ");
-      Serial.print(snakeTail.x);
-      Serial.print(" ");
-      Serial.println(snakeTail.y);
-      Serial.println();
     }
+    sevseg.setNumber((highScore * 100) + curScore);
+    sevseg.refreshDisplay();
   }
+  if (highScore < curScore) {
+    highScore = curScore;
+  }
+  sevseg.setNumber((highScore * 100) + curScore);
+  sevseg.refreshDisplay();
 }
 
 int getDirection(int curDir){
